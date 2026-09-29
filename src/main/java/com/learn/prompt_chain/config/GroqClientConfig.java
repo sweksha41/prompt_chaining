@@ -1,4 +1,4 @@
-package com.learn.ai_react.config;
+package com.learn.prompt_chain.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

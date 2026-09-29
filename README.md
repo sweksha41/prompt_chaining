@@ -15,11 +15,14 @@ Groq Models:
 <img width="295" height="500" alt="image" src="https://github.com/user-attachments/assets/8fb92839-b0a5-42d2-91a0-896df718fe9c" />
 
 
-This is the way to call promptEngine end point and response content is OTHER when prompt is irrelevant
+This is the way to call it 
 
+POST /api/groq/match
+Content-Type: application/json
 
-![img.png](img.png)
+{
+"jobDescription": "Backend Python Developer. Requirements: Python, FastAPI or Django, PostgreSQL, Docker, AWS, REST APIs, 2+ years of experience.",
+"resume": "3 years as a Software Developer. Skills: Python, FastAPI, MySQL, Docker, REST APIs, Git."
+}
 
-This is the way to call promptEngine end point and response content is Technical when prompt is relevant
-
-![img_1.png](img_1.png)
+![img_2.png](img_2.png)

@@ -1,4 +1,4 @@
-package com.learn.ai_react.model;
+package com.learn.prompt_chain.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
