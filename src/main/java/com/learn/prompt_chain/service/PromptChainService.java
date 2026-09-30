@@ -25,56 +25,84 @@ public class PromptChainService {
         this.apiKey = apiKey;
     }
 
-    public Mono<ResumeMatchResult> matchResume(ResumeMatchRequest request) {
-        String extractionSystemPrompt = """
-                You are a professional HR assistant. Extract the skills from the provided text.
-                Only return skills explicitly stated in the text. Do not invent any skills.
-                Return only comma-separated skills with no other information.
-                """;
+    private static final String SKILL_EXTRACTION_PROMPT = """
+            You are a professional HR assistant. Extract skills explicitly stated
+            in the provided text. Do not invent any skills. Return only
+            comma-separated skills, with no other information.
+            """;
 
-        String resumePrompt = "Extract the skills from this resume:\n" + request.resume();
-        String jobDescriptionPrompt =
-                "Extract the skills from this job description:\n" + request.jobDescription();
+    private static final String SKILL_MATCH_PROMPT = """
+            You are a professional HR assistant. Compare the candidate's skills
+            with the skills required in the job description. Give a score between
+            1 and 100 and a short verdict on whether the candidate is a good fit.
+            """;
 
-        return askForText(extractionSystemPrompt, resumePrompt)
+    public Mono<ResumeMatchResult> matchResume(
+            ResumeMatchRequest resumeMatchRequest
+    ) {
+        return step1ExtractResumeSkills(resumeMatchRequest.resume())
                 .flatMap(candidateSkills ->
-                        askForText(extractionSystemPrompt, jobDescriptionPrompt)
-                                .flatMap(jobDescriptionSkills -> {
-                                    String comparisonSystemPrompt = """
-                                            You are a professional HR assistant. Compare the candidate's skills
-                                            with the skills required by the job description. Give a score from
-                                            1 to 100 and a short verdict on whether the candidate is a good fit.
-                                            """;
-
-                                    String comparisonPrompt = """
-                                            Compare these skills.
-
-                                            Job description skills:
-                                            %s
-
-                                            Candidate skills:
-                                            %s
-                                            """.formatted(jobDescriptionSkills, candidateSkills);
-
-                                    return askForText(
-                                            comparisonSystemPrompt,
-                                            comparisonPrompt
-                                    ).map(evaluation -> new ResumeMatchResult(
-                                            candidateSkills,
-                                            jobDescriptionSkills,
-                                            evaluation
-                                    ));
-                                })
+                        step2ExtractJobDescriptionSkills(resumeMatchRequest.jobDescription())
+                                .map(jobSkills ->
+                                        new ExtractedSkills(candidateSkills, jobSkills)
+                                )
+                )
+                .flatMap(skills ->
+                        step3MatchSkills(
+                                skills.candidateSkills(),
+                                skills.jobSkills()
+                        ).map(evaluation ->
+                                new ResumeMatchResult(
+                                        skills.candidateSkills(),
+                                        skills.jobSkills(),
+                                        evaluation
+                                )
+                        )
                 );
     }
 
-    private Mono<String> askForText(String systemPrompt, String userPrompt) {
+    private Mono<String> step1ExtractResumeSkills(String resume) {
+        String userPrompt = """
+                Extract the skills from this resume:
+                %s
+                """.formatted(resume);
+
+        return askLlm(SKILL_EXTRACTION_PROMPT, userPrompt);
+    }
+
+    private Mono<String> step2ExtractJobDescriptionSkills(String jobDescription) {
+        String userPrompt = """
+                Extract the skills from this job description:
+                %s
+                """.formatted(jobDescription);
+
+        return askLlm(SKILL_EXTRACTION_PROMPT, userPrompt);
+    }
+
+    private Mono<String> step3MatchSkills(
+            String candidateSkills,
+            String jobSkills
+    ) {
+        String userPrompt = """
+                Compare these skills.
+
+                Job description skills:
+                %s
+
+                Candidate skills:
+                %s
+                """.formatted(jobSkills, candidateSkills);
+
+        return askLlm(SKILL_MATCH_PROMPT, userPrompt);
+    }
+
+    private Mono<String> askLlm(String systemPrompt, String userPrompt) {
         return chat(systemPrompt, userPrompt)
                 .map(response -> response.choices().getFirst().message().content());
     }
 
     private Mono<GroqResponse> chat(String systemPrompt, String userPrompt) {
-        Map<String, Object> body = Map.of(
+        Map<String, Object> requestBody = Map.of(
                 "model", MODEL,
                 "messages", List.of(
                         Map.of("role", "system", "content", systemPrompt),
@@ -87,8 +115,13 @@ public class PromptChainService {
         return webClient.post()
                 .uri("/chat/completions")
                 .header("Authorization", "Bearer " + apiKey)
-                .bodyValue(body)
+                .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(GroqResponse.class);
     }
+    private record ExtractedSkills(
+            String candidateSkills,
+            String jobSkills
+    ) {}
+
 }
