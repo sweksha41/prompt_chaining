@@ -58,5 +58,6 @@ For testing streaming end point http://localhost:8080/api/agent/ask/stream
 
 
 **so use the frontend page created below to test it**
+http://localhost:8080/stream-test.html
 
 ![img.png](img.png)
