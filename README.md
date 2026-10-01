@@ -22,7 +22,6 @@ POST /api/groq/match
 }
 
 
-
 Groq Models:
 - You can find the groq model accessible to you on your groq logged-in portal
 <img width="295" height="500" alt="image" src="https://github.com/user-attachments/assets/8fb92839-b0a5-42d2-91a0-896df718fe9c" />
@@ -39,3 +38,25 @@ Content-Type: application/json
 }
 
 ![img_2.png](img_2.png)
+
+
+For streaming, we just pass "stream" to true in the body and the LLM understands that we want to stream the result instead of waiting for complete response t be ready.
+
+Map<String, Object> requestBody = Map.of(
+"model", MODEL,
+"messages", List.of(
+Map.of("role", "user", "content", prompt)
+),
+"stream", true
+);
+
+
+For testing streaming end point http://localhost:8080/api/agent/ask/stream
+**It doesn't show nicely on postman as shown below**
+
+![img_1.png](img_1.png)
+
+
+**so use the frontend page created below to test it**
+
+![img.png](img.png)

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Groq Stream Test</title>
+    <style>
+        body {
+            max-width: 760px;
+            margin: 48px auto;
+            padding: 0 20px;
+            font: 16px/1.5 system-ui, sans-serif;
+            color: #202522;
+            background: #f5f7f5;
+        }
+
+        h1 { font-size: 1.5rem; }
+
+        textarea {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            font: inherit;
+            border: 1px solid #aab4ad;
+            border-radius: 6px;
+            resize: vertical;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0 20px;
+        }
+
+        button {
+            padding: 8px 14px;
+            font: inherit;
+            border: 0;
+            border-radius: 5px;
+            color: white;
+            background: #176b4d;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+
+        #status {
+            color: #526159;
+            font-size: 0.9rem;
+        }
+
+        #answer {
+            min-height: 180px;
+            padding: 16px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: white;
+            border: 1px solid #d4ddd6;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+<h1>Groq streaming test</h1>
+
+<label for="prompt">Prompt</label>
+<textarea id="prompt">How does the internet work?</textarea>
+
+<div class="actions">
+    <button id="start">Start stream</button>
+    <button id="stop" disabled>Stop</button>
+    <span id="status">Ready</span>
+</div>
+
+<pre id="answer"></pre>
+
+<script>
+    const promptInput = document.querySelector("#prompt");
+    const answer = document.querySelector("#answer");
+    const status = document.querySelector("#status");
+    const startButton = document.querySelector("#start");
+    const stopButton = document.querySelector("#stop");
+
+    let eventSource;
+
+    function stopStream(message = "Stopped") {
+        eventSource?.close();
+        eventSource = undefined;
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        status.textContent = message;
+    }
+
+    startButton.addEventListener("click", () => {
+        const prompt = promptInput.value.trim();
+
+        if (!prompt) {
+            status.textContent = "Enter a prompt first";
+            return;
+        }
+
+        eventSource?.close();
+        answer.textContent = "";
+        status.textContent = "Connecting...";
+        startButton.disabled = true;
+        stopButton.disabled = false;
+
+        const url = `/api/agent/ask/stream?prompt=${encodeURIComponent(prompt)}`;
+        eventSource = new EventSource(url);
+
+        eventSource.onopen = () => {
+            status.textContent = "Streaming...";
+        };
+
+        eventSource.onmessage = (event) => {
+            answer.textContent += event.data;
+        };
+
+        eventSource.onerror = () => {
+            stopStream("Stream ended or connection failed");
+        };
+    });
+
+    stopButton.addEventListener("click", () => {
+        stopStream();
+    });
+</script>
+</body>
+</html>
