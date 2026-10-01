@@ -40,7 +40,7 @@ Content-Type: application/json
 ![img_2.png](img_2.png)
 
 
-For streaming, we just pass "stream" to true in the body and the LLM understands that we want to stream the result instead of waiting for complete response t be ready.
+For streaming, we just pass "stream" to true in the body and the LLM understands that we want to stream the result instead of waiting for complete response to be ready.
 
 Map<String, Object> requestBody = Map.of(
 "model", MODEL,
